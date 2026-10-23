@@ -1,12 +1,20 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-10-23T22:13:29.184Z",
-  "provider": "GDELT",
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-23T22:18:55.795Z",
+  "provider": "GDELT Project",
   "status": "limited",
+  "sourceQueries": 2,
   "errors": [
-    "Articles: HTTP 429",
-    "Geo: HTTP 404"
+    "GDELT articles query 1: HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset: https://blog.gdeltp",
+    "GDELT articles query 2: HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset: https://blog.gdeltp",
+    "GDELT geographic mentions: HTTP 404: <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The request"
   ],
   "articles": [],
-  "geoFeatures": []
+  "geoFeatures": [],
+  "limitations": [
+    "GDELT aggregates public reports and does not independently verify claims.",
+    "Map points are geographic mentions, not confirmed incident coordinates.",
+    "Check the original source before sharing a claim.",
+    "GitHub Actions scheduling is not real-time."
+  ]
 }
