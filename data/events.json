@@ -1,17 +1,13 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-10-23T21:59:06.346Z",
+  "schemaVersion": 2,
+  "generatedAt": null,
   "provider": "GDELT Project",
   "status": "limited",
-  "errors": [
-    "GDELT articles: HTTP 429",
-    "GDELT geographic mentions: HTTP 404"
-  ],
+  "errors": [],
   "articles": [],
   "geoFeatures": [],
   "limitations": [
-    "Aggregated news is not independent verification.",
-    "Map features are geographic mentions from GDELT, not confirmed incident coordinates.",
-    "Data freshness depends on source publication and the GitHub Actions schedule."
+    "No live fetch has run yet. No sample events are included.",
+    "Map points will be geographic mentions from reports, not confirmed incident coordinates."
   ]
 }
