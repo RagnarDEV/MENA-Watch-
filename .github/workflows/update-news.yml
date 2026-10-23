@@ -1,0 +1,45 @@
+name: Update public-source news feed
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub scheduled workflows are not guaranteed to run at the exact minute.
+    # Five-minute cadence is more realistic than a one-minute cron schedule.
+    - cron: '*/5 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/update-news.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-public-news-feed
+  cancel-in-progress: false
+
+jobs:
+  update-feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch and normalize public news data
+        run: node scripts/update-news.mjs
+      - name: Commit updated dataset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/events.json
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+          else
+            git commit -m "chore: update public-source news feed [skip ci]"
+            git push
+          fi
