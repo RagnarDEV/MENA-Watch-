@@ -33,6 +33,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Test collector
+        run: node --test scripts/update-news.test.mjs
+
       - name: Fetch public news
         run: node scripts/update-news.mjs
 
