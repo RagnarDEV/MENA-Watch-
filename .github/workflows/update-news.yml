@@ -1,31 +1,60 @@
+
 name: Update public-source news feed
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "*/5 * * * *"
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/**"
+      - ".github/workflows/update-news.yml"
 
 permissions:
   contents: write
 
+concurrency:
+  group: update-public-news-feed
+  cancel-in-progress: false
+
 jobs:
-  update:
+  update-feed:
     runs-on: ubuntu-latest
+    timeout-minutes: 4
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "22"
 
-      - name: Update feed
+      - name: Fetch public news
         run: node scripts/update-news.mjs
 
-      - name: Commit changes
+      - name: Show dataset diagnostics
+        if: always()
+        run: |
+          if [ -f data/events.json ]; then
+            node -e "const d=require('./data/events.json'); console.log(JSON.stringify({generatedAt:d.generatedAt,status:d.status,articles:d.articles?.length,geoFeatures:d.geoFeatures?.length,errors:d.errors},null,2))"
+          else
+            echo "ERROR: data/events.json was not created"
+          fi
+
+      - name: Commit updated data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add data/events.json
-          git diff --cached --quiet || git commit -m "Update public-source feed"
-          git push
+
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+          else
+            git commit -m "chore: update public news feed [skip ci]"
+            git push
+          fi
