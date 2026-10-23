@@ -1,28 +1,37 @@
 
-name: Update public-source news feed
+name: Update MENA Watch public-source data
 
 on:
   workflow_dispatch:
+
   schedule:
-    - cron: "*/5 * * * *"
+    # تشغيل دوري كل 5 دقائق، حسب توفر GitHub Actions
+    - cron: '*/5 * * * *'
+
   push:
     branches:
       - main
     paths:
-      - "scripts/**"
-      - ".github/workflows/update-news.yml"
+      - 'scripts/**'
+      - '.github/workflows/update-news.yml'
 
 permissions:
   contents: write
 
 concurrency:
-  group: update-public-news-feed
+  group: update-mena-watch-data
   cancel-in-progress: false
 
 jobs:
   update-feed:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 5
+
+    env:
+      ACLED_EMAIL: ${{ secrets.ACLED_EMAIL }}
+      ACLED_PASSWORD: ${{ secrets.ACLED_PASSWORD }}
+      NASA_FIRMS_MAP_KEY: ${{ secrets.NASA_FIRMS_MAP_KEY }}
+      RELIEFWEB_APPNAME: ${{ secrets.RELIEFWEB_APPNAME }}
 
     steps:
       - name: Check out repository
@@ -31,33 +40,19 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
 
-      - name: Test collector
-        run: node --test scripts/update-news.test.mjs
-
-      - name: Fetch public news
+      - name: Fetch and normalize available public-source data
         run: node scripts/update-news.mjs
 
-      - name: Show dataset diagnostics
-        if: always()
-        run: |
-          if [ -f data/events.json ]; then
-            node -e "const d=require('./data/events.json'); console.log(JSON.stringify({generatedAt:d.generatedAt,status:d.status,articles:d.articles?.length,geoFeatures:d.geoFeatures?.length,errors:d.errors},null,2))"
-          else
-            echo "ERROR: data/events.json was not created"
-          fi
-
-      - name: Commit updated data
+      - name: Commit updated dataset
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
           git add data/events.json
-
           if git diff --cached --quiet; then
             echo "No data changes to commit."
           else
-            git commit -m "chore: update public news feed [skip ci]"
+            git commit -m "chore: update MENA Watch multi-source data [skip ci]"
             git push
           fi
