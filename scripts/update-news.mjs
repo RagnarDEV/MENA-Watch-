@@ -1,56 +1,115 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 
 const OUT = new URL('../data/events.json', import.meta.url);
-const REGION_QUERY = '(Iran OR Israel OR Lebanon OR Syria OR Iraq OR Yemen OR Gaza OR Palestine OR Jordan OR Egypt OR Turkey OR "Persian Gulf" OR "Red Sea" OR "Middle East")';
-const SECURITY_QUERY = '(military OR missile OR rocket OR airstrike OR attack OR explosion OR drone OR bombing OR "air defense" OR "air defence" OR alert OR warning OR ceasefire OR conflict OR troops OR strike OR security)';
 const DOC_URL = 'https://api.gdeltproject.org/api/v2/doc/doc';
 const GEO_URL = 'https://api.gdeltproject.org/api/v2/geo/geo';
+// Keep queries broad enough to retrieve real reports, but limited to the requested region and topic.
+const QUERIES = [
+  '(Iran OR Israel OR Lebanon OR Syria OR Iraq OR Yemen OR Gaza OR Palestine OR Jordan OR Egypt OR Turkey OR "Red Sea" OR "Persian Gulf") AND (missile OR rocket OR airstrike OR explosion OR drone OR bombing OR attack OR military OR ceasefire OR airspace OR warning)',
+  '("Middle East" OR Tehran OR Jerusalem OR Beirut OR Damascus OR Baghdad OR Sanaa OR Gaza) AND (security OR conflict OR strike OR troops OR defense OR defence OR alert OR explosion)'
+];
 
 async function fetchJson(url, label) {
-  const response = await fetch(url, { headers: { 'user-agent': 'MENA-Watch/1.0 (public-source research dashboard)' }, signal: AbortSignal.timeout(25000) });
+  const response = await fetch(url, {
+    headers: { 'user-agent': 'MENA-Watch/1.1 (public-source news monitor)', accept: 'application/json' },
+    signal: AbortSignal.timeout(25000)
+  });
   if (!response.ok) throw new Error(`${label}: HTTP ${response.status}`);
-  return response.json();
+  const text = await response.text();
+  try { return JSON.parse(text); }
+  catch { throw new Error(`${label}: response was not valid JSON (${text.slice(0, 100)})`); }
 }
-function validUrl(value) { try { const u = new URL(value); return ['https:', 'http:'].includes(u.protocol) ? u.href : null; } catch { return null; } }
-function normalizeDate(value) {
-  if (!value) return null;
-  // GDELT commonly uses YYYYMMDDTHHMMSSZ rather than an ISO date string.
-  const raw = String(value);
-  const compact = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/);
-  const parsed = compact ? new Date(`${compact[1]}-${compact[2]}-${compact[3]}T${compact[4]}:${compact[5]}:${compact[6]}Z`) : new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+function validUrl(value) {
+  try { const u = new URL(value); return ['https:', 'http:'].includes(u.protocol) ? u.href : null; }
+  catch { return null; }
 }
 function normalizeArticle(a) {
-  const url = validUrl(a.url); if (!url || !a.title) return null;
-  let domain = a.domain; if (!domain) { try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch {} }
-  return { title: String(a.title).slice(0, 500), url, domain: String(domain || '').slice(0, 120), seendate: normalizeDate(a.seendate), language: a.language || 'Unknown', sourcecountry: a.sourcecountry || null, tone: Number.isFinite(Number(a.tone)) ? Number(a.tone) : null, category: 'Public report', sourceCount: 1 };
+  const url = validUrl(a.url);
+  if (!url || !a.title) return null;
+  let domain = a.domain;
+  if (!domain) { try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch {} }
+  return {
+    title: String(a.title).slice(0, 500), url,
+    domain: String(domain || '').slice(0, 120),
+    seendate: a.seendate || null,
+    language: a.language || 'Unknown',
+    sourcecountry: a.sourcecountry || null,
+    tone: Number.isFinite(Number(a.tone)) ? Number(a.tone) : null,
+    category: 'Public report', sourceCount: 1,
+    verification: 'unverified', provider: 'GDELT Project'
+  };
+}
+function validFeature(f) {
+  const c = f?.geometry?.coordinates;
+  return f?.geometry?.type === 'Point' && Array.isArray(c) && c.length >= 2 &&
+    Number.isFinite(c[0]) && Number.isFinite(c[1]) && Math.abs(c[0]) <= 180 && Math.abs(c[1]) <= 90;
 }
 async function main() {
   const now = new Date().toISOString();
-  const query = `${REGION_QUERY} AND ${SECURITY_QUERY}`;
-  const docParams = new URLSearchParams({ query, mode: 'ArtList', format: 'json', maxrecords: '100', sort: 'HybridRel', timespan: '24h' });
-  const geoParams = new URLSearchParams({ query, mode: 'PointData', format: 'GeoJSON', timespan: '24h', maxpoints: '250' });
-  let articles = [], geoFeatures = [], errors = [];
-  try {
-    const data = await fetchJson(`${DOC_URL}?${docParams}`, 'GDELT articles');
-    articles = (data.articles || []).map(normalizeArticle).filter(Boolean);
-    const seen = new Set(); articles = articles.filter(a => { const k = a.url.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
-  } catch (e) { errors.push(String(e.message || e)); }
+  const articlesByUrl = new Map();
+  const geoByKey = new Map();
+  const errors = [];
+  // Run two independent query variants: one failing query does not erase successful results from the other.
+  for (let i = 0; i < QUERIES.length; i++) {
+    const query = QUERIES[i];
+    const params = new URLSearchParams({ query, mode: 'ArtList', format: 'json', maxrecords: '75', sort: 'DateDesc', timespan: '24h' });
+    try {
+      const data = await fetchJson(`${DOC_URL}?${params}`, `GDELT articles query ${i + 1}`);
+      for (const raw of (Array.isArray(data.articles) ? data.articles : [])) {
+        const a = normalizeArticle(raw);
+        if (a && !articlesByUrl.has(a.url.toLowerCase())) articlesByUrl.set(a.url.toLowerCase(), a);
+      }
+    } catch (e) { errors.push(String(e.message || e)); }
+  }
+  // Geo endpoint returns mentions extracted from coverage; these are NOT verified incident locations.
+  const geoQuery = '(Iran OR Israel OR Lebanon OR Syria OR Iraq OR Yemen OR Gaza OR Palestine OR Jordan OR Egypt OR Turkey OR "Red Sea" OR "Persian Gulf") AND (missile OR rocket OR airstrike OR explosion OR drone OR attack OR military OR conflict)';
+  const geoParams = new URLSearchParams({ query: geoQuery, mode: 'PointData', format: 'GeoJSON', timespan: '24h', maxpoints: '250' });
   try {
     const geo = await fetchJson(`${GEO_URL}?${geoParams}`, 'GDELT geographic mentions');
-    if (geo && geo.type === 'FeatureCollection' && Array.isArray(geo.features)) {
-      geoFeatures = geo.features.filter(f => f?.geometry?.type === 'Point' && Array.isArray(f.geometry.coordinates) && f.geometry.coordinates.length >= 2 && f.geometry.coordinates.slice(0, 2).every(Number.isFinite) && Math.abs(f.geometry.coordinates[0]) <= 180 && Math.abs(f.geometry.coordinates[1]) <= 90).slice(0, 250).map(f => ({ type: 'Feature', geometry: { type: 'Point', coordinates: f.geometry.coordinates.slice(0, 2) }, properties: { name: String(f.properties?.name || f.properties?.location || 'Reported geographic mention').slice(0, 180), url: validUrl(f.properties?.url), count: Number.isFinite(Number(f.properties?.count)) ? Number(f.properties.count) : null } }));
-    }
+    if (geo?.type === 'FeatureCollection' && Array.isArray(geo.features)) {
+      for (const f of geo.features.filter(validFeature).slice(0, 250)) {
+        const coords = f.geometry.coordinates.slice(0, 2).map(Number);
+        const props = f.properties || {};
+        const name = String(props.name || props.location || props.label || 'Reported geographic mention').slice(0, 180);
+        const url = validUrl(props.url);
+        const key = `${coords[0].toFixed(4)},${coords[1].toFixed(4)}|${name.toLowerCase()}`;
+        if (!geoByKey.has(key)) geoByKey.set(key, {
+          type: 'Feature', geometry: { type: 'Point', coordinates: coords },
+          properties: { name, url, count: Number.isFinite(Number(props.count)) ? Number(props.count) : null, verification: 'geographic_mention_only', provider: 'GDELT Project' }
+        });
+      }
+    } else errors.push('GDELT geographic endpoint returned no GeoJSON FeatureCollection.');
   } catch (e) { errors.push(String(e.message || e)); }
-  const payload = { schemaVersion: 1, generatedAt: now, provider: 'GDELT Project', status: articles.length || geoFeatures.length ? 'ok' : 'limited', errors, articles, geoFeatures, limitations: ['Aggregated news is not independent verification.', 'Map features are geographic mentions from GDELT, not confirmed incident coordinates.', 'Data freshness depends on source publication and the GitHub Actions schedule.'] };
+
+  const articles = [...articlesByUrl.values()].sort((a, b) => Date.parse(b.seendate || 0) - Date.parse(a.seendate || 0)).slice(0, 150);
+  const geoFeatures = [...geoByKey.values()].slice(0, 250);
+  const successCount = (articles.length ? 1 : 0) + (geoFeatures.length ? 1 : 0);
+  const payload = {
+    schemaVersion: 2, generatedAt: now, provider: 'GDELT Project',
+    status: successCount === 2 ? 'ok' : successCount === 1 ? 'partial' : 'limited',
+    sourceQueries: QUERIES.length, errors, articles, geoFeatures,
+    limitations: [
+      'GDELT aggregates public news coverage; it does not independently verify claims.',
+      'Map points are geographic mentions extracted from reports, not confirmed incident coordinates.',
+      'The article source link and publication/seen time should be checked before sharing.',
+      'GitHub Actions scheduling is best-effort and is not a real-time alerting guarantee.'
+    ]
+  };
   await mkdir(new URL('../data/', import.meta.url), { recursive: true });
   await writeFile(OUT, JSON.stringify(payload, null, 2) + '\n');
-  console.log(`Wrote ${articles.length} articles and ${geoFeatures.length} geographic mentions. Status=${payload.status}; errors=${errors.length}`);
-  // A successful workflow can publish a valid empty/partial dataset; the page shows the limitations explicitly.
+  console.log(`Wrote ${articles.length} real article records and ${geoFeatures.length} geographic mentions. Status=${payload.status}; errors=${errors.length}`);
+  if (!successCount) {
+    console.error('No live data returned by GDELT queries. The dataset is marked limited; no sample events were inserted.');
+    process.exitCode = 1;
+  }
 }
 main().catch(async error => {
   console.error(error);
-  const fallback = { schemaVersion: 1, generatedAt: new Date().toISOString(), provider: 'GDELT Project', status: 'limited', errors: [String(error.message || error)], articles: [], geoFeatures: [], limitations: ['Data collection failed; no live data is implied.'] };
+  const fallback = {
+    schemaVersion: 2, generatedAt: new Date().toISOString(), provider: 'GDELT Project', status: 'limited',
+    errors: [String(error.message || error)], articles: [], geoFeatures: [],
+    limitations: ['Data collection failed. This file contains no fabricated or fallback news.']
+  };
   await writeFile(OUT, JSON.stringify(fallback, null, 2) + '\n');
   process.exitCode = 1;
 });
