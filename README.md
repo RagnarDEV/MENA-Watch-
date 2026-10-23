@@ -1,37 +1,34 @@
 # MENA Watch
 
-A bilingual (Arabic/English) static dashboard for public-source security and military-related reporting across the Middle East. It is an awareness/news aggregation tool, not an operational intelligence system.
+A bilingual, static GitHub Pages dashboard for public-source reporting about security-related news in the Middle East.
 
-## Features
-- Responsive dark dashboard with Arabic/English interface.
-- Interactive Leaflet map displaying only geographic mention features returned by GDELT.
-- Public news feed with original-source links, search, language filter and timestamps.
-- Explicit limitations: a geographic mention is not a verified incident coordinate; aggregated reporting is not independent verification.
-- GitHub Actions collection workflow and a static JSON dataset. The page refreshes its view every 60 seconds; data collection is scheduled every 5 minutes, subject to GitHub scheduling delays.
+## Data source and verification
 
-## Deploy with GitHub Pages
-1. Create a repository, for example `mena-watch`.
-2. Upload all files preserving their paths.
-3. Open **Settings → Pages** and choose **Deploy from a branch**, branch `main`, folder `/ (root)`; save.
-4. Open **Actions** and enable workflows if GitHub asks.
-5. Run **Update public-source news feed → Run workflow** once manually.
-6. Wait for the workflow to finish and for Pages to publish. Open the Pages URL.
+- Articles and geographic mentions are collected from the public GDELT DOC and GEO APIs.
+- Each article links to the original publisher where available.
+- The project does not invent fallback/sample events. Before the first successful workflow run, the feed is empty by design.
+- GDELT is a news aggregation source, not independent verification. Geographic points are reported mentions, not confirmed incident coordinates.
+- No tactical aircraft tracking or operational targeting features are provided.
 
-If the repository is private, Pages availability depends on your GitHub plan. A public repository is the simplest free setup.
+## Publish with GitHub Pages
 
-## Important workflow permission
-The workflow commits `data/events.json` back into the repository. In **Settings → Actions → General → Workflow permissions**, enable **Read and write permissions**. If your repository rules prohibit direct pushes to `main`, adjust the rules or change the workflow to publish artifacts another way.
+1. Upload the contents of this folder to the root of a GitHub repository.
+2. In **Settings → Pages**, select **Deploy from a branch**, branch `main`, folder `/ (root)`.
+3. In **Settings → Actions → General → Workflow permissions**, allow **Read and write permissions** so the workflow can commit `data/events.json`.
+4. Open **Actions → Update public-source news feed → Run workflow**.
+5. Check the workflow log. A successful data collection prints the number of records written. If the source returns no records or fails, the workflow is marked failed and no invented events are inserted.
 
 ## Update cadence
-The web page checks the published JSON every minute, but that does **not** mean the source data is updated every minute. GitHub Actions schedules are best-effort and can be delayed; this workflow runs every five minutes. Do not change this to every minute expecting reliable one-minute updates.
 
-## Data provider and map
-- GDELT Project: https://www.gdeltproject.org/
-- GDELT DOC API: https://blog.gdeltproject.org/gdelt-2-0-api-debuts/
-- OpenStreetMap attribution: https://www.openstreetmap.org/copyright
-- Leaflet: https://leafletjs.com/
+GitHub Actions is scheduled every five minutes. Scheduled workflows are best-effort and may start late; the browser refreshes the published JSON every minute, which does not mean the underlying source data is refreshed every minute.
 
-Review each provider's terms and rate limits before relying on this for sustained public traffic. The feed may be incomplete or noisy. Article metadata does not independently establish truth. The map uses geographic mentions supplied by GDELT; it does not claim to locate a reported incident precisely.
+## Map
 
-## Safety and accuracy scope
-This first version does not track individual military aircraft or publish tactical routes/positions. It is limited to public reporting and broad geographic mentions. Never use the dashboard as an emergency alert service or as the sole basis for safety decisions.
+The map uses CARTO's dark raster tiles based on OpenStreetMap data. Keep the attribution visible and review the current provider terms and usage limits before substantial or commercial traffic.
+
+## Files
+
+- `index.html`: responsive Arabic/English interface, dark map, filters and feed.
+- `scripts/update-news.mjs`: collects and normalizes real GDELT reports.
+- `.github/workflows/update-news.yml`: scheduled/manual collection and publishing.
+- `data/events.json`: published data; intentionally empty until a live collection succeeds.
