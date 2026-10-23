@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-10-23T22:43:40.551Z",
+  "generatedAt": "2026-10-23T22:45:00.883Z",
   "provider": "Google News RSS (fallback)",
   "status": "ok",
   "sourceQueries": 1,
@@ -345,7 +345,7 @@
       "provider": "GDELT Project"
     },
     {
-      "title": "Energy markets adapt to the Iran 'forever conflict' as region avoids 'mutually assured destruction' - Fortune",
+      "title": "Energy markets adapt to the Iran ‘forever conflict’ as region avoids ‘mutually assured destruction’ - Fortune",
       "url": "https://news.google.com/rss/articles/CBMizAFBVV95cUxOcThmYms4bXZlN2dQbzljYlNjOEhYcFlwdUVxQ3RYaEg2RVVUY05uQ25Eb280YUp3aGwwdjRTVHljTWV1SXExWnhmUk0wSEVvdmlTNmpBTVBsb0Zodk82ejh2cTN1QVp4Mjk5LTZGRWRHa3kwVE9WVnhqcGwzUXk0eUpoUUlfcGRvMk1WTFc4UzZJeXdmV2llcTRDOGVpQ1RKbUZfUnFUdXlJODdMb09SQjdlU3gwMi1na0pjNnpYR1ZYV1FBQ3dUMjA1UUo?oc=5",
       "domain": "Fortune",
       "seendate": "Fri, 23 Oct 2026 16:41:00 GMT",
@@ -1112,19 +1112,6 @@
       "provider": "GDELT Project"
     },
     {
-      "title": "Why Saudi Military Superiority Has Not Defeated the Houthis - Stimson Center",
-      "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxQV1JUdEtuTmFPTnd5cHJhTXd4TkpBaV9DMmo4TEtsTkNPeVRvSC1ETEx1cldXSlFhSVVrWnBKdU5VLWk5QkpHOTNZdS1lX0JZVEhxOWZNRmZsUVpDNDhONjYzSjVMalFucjBvS3BTU3BxckY0SzFlclhDcU56T0E2U2tiUDk3TlU1X3NQeUdSOVJCTG8?oc=5",
-      "domain": "Stimson Center",
-      "seendate": "Tue, 13 Oct 2026 07:00:00 GMT",
-      "language": "English",
-      "sourcecountry": null,
-      "tone": 0,
-      "category": "Public report",
-      "sourceCount": 1,
-      "verification": "unverified",
-      "provider": "GDELT Project"
-    },
-    {
       "title": "Jared Kushner’s Middle East Financial Ties Draw Scrutiny as US Funds Gaza Force - Military.com",
       "url": "https://news.google.com/rss/articles/CBMipgFBVV95cUxPdnlEQTBvV2dfcE1MSlJGU2xaSDc0OWhsSFZFRlBhUHYteC1BSDA2NERHOEZyT2FBSy1mRE92cXhKaTdIWW5mVUFsckxRYmJzVzFWem5pUHZKT29XNWJ3MmVteEdzajBxZ1h0TVZjelh5Q1lGNkdMUFNDRGJDd1JabW1NY3BfaE5NVWNOREV2S19YRmpiZXdRMndBRU9qclhVZEhkamV3?oc=5",
       "domain": "Military.com",
@@ -1272,6 +1259,19 @@
       "url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxPbjFPcHBidVlJamxFUW0xeHp0UkxqWlZoNjFHSkxuT3FCOXRjYkNRdVN3VVdVQkI0M0Z1OGowbVJHclYzMldCZUFCZk5DSU52elI1c3lzVWE5bjFycG1HZENDR0tTTkhNdGJ5cHVzRGwzek1ESTdvZ1ZscmsyNXhCbkY1TFBOamFOQ3Btb3ZSWURMODBCT2dtcDFaSG5PYzNYN19fdzdPNjdweDN5TXdjMdIBtgFBVV95cUxPUW9YYWdrbThFMkhwVWpfWk9selpIdXJpYTVkdUVGRUc2alp6aEV5T0Jicm9hWFFrbklvRVRERWdlSUh6SDExQWZHc1EwQTE3aEZGTFdLZlZfb3hWVXcwbVA4a2dqS19Qa21MQ3pzLU0ySlhOSUhua2pkQmppZTExdm1tZ2ZzS0o5Y05PdUFLTTIwaUhMYXFsTlQtN01kMzhidUNtekhtSHpULUpYRG1LTnJfSUF5Zw?oc=5",
       "domain": "PBS",
       "seendate": "Tue, 29 Sep 2026 07:00:00 GMT",
+      "language": "English",
+      "sourcecountry": null,
+      "tone": 0,
+      "category": "Public report",
+      "sourceCount": 1,
+      "verification": "unverified",
+      "provider": "GDELT Project"
+    },
+    {
+      "title": "Israel ready to resume strikes on Iran as regime aims to rebuild nuclear program - report - The Jerusalem Post",
+      "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE9OMHpQQkdXYUlJQ2xqcmdMZllqRE9nQXEtVHJnUV8zYWxZdGtrS2hsei12UXhxcVVWRUtMd0xGeWpqeWdRZ3YxZFJfQV81ZHhqTVlFN2ptcWtZSjhUSzZTV1pIUmpLRy1HWEE?oc=5",
+      "domain": "The Jerusalem Post",
+      "seendate": "Thu, 24 Sep 2026 07:00:00 GMT",
       "language": "English",
       "sourcecountry": null,
       "tone": 0,
