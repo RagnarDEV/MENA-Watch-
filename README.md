@@ -4,7 +4,7 @@ A bilingual, static GitHub Pages dashboard for public-source reporting about sec
 
 ## Data source and verification
 
-- Articles are collected from the public GDELT DOC API. The legacy GDELT GEO 2.0 endpoint currently returns 404, so geographic mentions are disabled rather than allowing a map failure to hide valid articles.
+- Articles are collected from the public GDELT DOC API, with Google News RSS as a fallback when GDELT is rate-limited or unavailable. The legacy GDELT GEO 2.0 endpoint currently returns 404, so geographic mentions are disabled rather than allowing a map failure to hide valid articles.
 - Each article links to the original publisher where available.
 - The project does not invent fallback/sample events. Before the first successful workflow run, the feed is empty by design.
 - GDELT is a news aggregation source, not independent verification. Geographic points are reported mentions, not confirmed incident coordinates.
@@ -29,7 +29,7 @@ The map uses Esri's dark raster tiles with the required attribution. Keep the at
 ## Files
 
 - `index.html`: responsive Arabic/English interface, dark map, filters and feed.
-- `scripts/update-news.mjs`: collects and normalizes real GDELT reports with rate-limit handling and failure protection.
+- `scripts/update-news.mjs`: collects and normalizes real reports with GDELT rate-limit handling, Google News RSS fallback and failure protection.
 - `scripts/update-news.test.mjs`: regression tests for throttling, validation, deduplication and empty-feed protection.
 - `.github/workflows/update-news.yml`: scheduled/manual collection and publishing.
 - `data/events.json`: published data; intentionally empty until a live collection succeeds.

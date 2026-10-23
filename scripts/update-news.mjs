@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 
 const OUT = new URL("../data/events.json", import.meta.url);
 const DOC_URL = "https://api.gdeltproject.org/api/v2/doc/doc";
+const RSS_URL = "https://news.google.com/rss/search";
 
 // GDELT rate-limits the DOC API. Keep this as one request per run rather than
 // firing several broad queries back-to-back and turning a temporary 429 into an
@@ -12,6 +13,7 @@ export const QUERY =
 const MAX_ARTICLES = 150;
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 6500;
+const RSS_QUERY = "Middle East (Iran OR Israel OR Lebanon OR Syria OR Iraq OR Yemen OR Gaza) (security OR conflict OR strike OR military OR explosion)";
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -70,6 +72,62 @@ export async function fetchJSON(url, label, fetchImpl = fetch) {
   throw lastError || new Error(`${label}: request failed`);
 }
 
+async function fetchText(url, label, fetchImpl = fetch) {
+  const response = await fetchImpl(url, {
+    headers: {
+      "user-agent": "MENA-Watch/1.3 (+https://github.com/RagnarDEV/MENA-Watch-)",
+      accept: "application/rss+xml, application/xml, text/xml"
+    },
+    signal: AbortSignal.timeout(25000)
+  });
+  const body = await response.text();
+  if (!response.ok) {
+    throw new Error(`${label}: HTTP ${response.status}: ${body.slice(0, 180)}`);
+  }
+  return body;
+}
+
+function decodeXML(value) {
+  return String(value || "")
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .trim();
+}
+
+function xmlTag(block, name) {
+  const match = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, "i"));
+  return decodeXML(match?.[1]);
+}
+
+export function parseRSS(xml) {
+  const articles = [];
+  for (const item of xml.match(/<item[\s\S]*?<\/item>/gi) || []) {
+    const url = validURL(xmlTag(item, "link"));
+    const title = xmlTag(item, "title");
+    if (!url || !title) continue;
+    const sourceMatch = item.match(/<source\b[^>]*>([\s\S]*?)<\/source>/i);
+    const source = decodeXML(sourceMatch?.[1]);
+    let domain = "";
+    try {
+      domain = new URL(url).hostname.replace(/^www\\./, "");
+    } catch {}
+    articles.push({
+      title,
+      url,
+      domain: source || domain,
+      seendate: xmlTag(item, "pubDate") || null,
+      language: "English",
+      sourcecountry: null,
+      tone: null
+    });
+  }
+  return articles;
+}
+
 function validURL(value) {
   try {
     const url = new URL(value);
@@ -122,8 +180,64 @@ function buildDocURL() {
   return `${DOC_URL}?${params}`;
 }
 
+function buildRSSURL() {
+  return `${RSS_URL}?${new URLSearchParams({
+    q: RSS_QUERY,
+    hl: "en-US",
+    gl: "US",
+    ceid: "US:en"
+  })}`;
+}
+
+async function collectRSS({ fetchImpl, now }) {
+  const xml = await fetchText(buildRSSURL(), "Google News RSS", fetchImpl);
+  const articles = new Map();
+  for (const raw of parseRSS(xml)) {
+    const article = normalizeArticle(raw);
+    if (article && !articles.has(article.url.toLowerCase())) {
+      articles.set(article.url.toLowerCase(), article);
+    }
+  }
+  const articleList = [...articles.values()]
+    .sort((a, b) => (Date.parse(b.seendate || "") || 0) - (Date.parse(a.seendate || "") || 0))
+    .slice(0, MAX_ARTICLES);
+  if (!articleList.length) {
+    throw new Error("Google News RSS: the source returned no usable articles");
+  }
+  return {
+    schemaVersion: 3,
+    generatedAt: now.toISOString(),
+    provider: "Google News RSS (fallback)",
+    status: "ok",
+    sourceQueries: 1,
+    errors: [],
+    articles: articleList,
+    geoFeatures: [],
+    geoStatus: "unavailable",
+    limitations: [
+      "Google News RSS is used as a fallback when GDELT is rate-limited or unavailable.",
+      "RSS results are public reports and are not independently verified.",
+      "The GDELT GEO 2.0 endpoint is currently unavailable; map mentions are disabled.",
+      "Check the original source before sharing a claim.",
+      "GitHub Actions scheduling is not real-time."
+    ]
+  };
+}
+
 export async function collect({ fetchImpl = fetch, now = new Date() } = {}) {
-  const result = await fetchJSON(buildDocURL(), "GDELT articles", fetchImpl);
+  let result;
+  try {
+    result = await fetchJSON(buildDocURL(), "GDELT articles", fetchImpl);
+  } catch (gdeltError) {
+    // GitHub-hosted runners often share an egress IP and GDELT may return 429
+    // indefinitely. Fall back to a public RSS search instead of publishing an
+    // empty dataset or failing the entire update job.
+    try {
+      return await collectRSS({ fetchImpl, now });
+    } catch (rssError) {
+      throw new Error(`GDELT failed (${gdeltError.message}); RSS fallback failed (${rssError.message})`);
+    }
+  }
   const articles = new Map();
 
   for (const raw of Array.isArray(result.articles) ? result.articles : []) {

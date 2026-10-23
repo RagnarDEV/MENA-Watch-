@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { collect, fetchJSON, normalizeArticle, QUERY } from "./update-news.mjs";
+import { collect, fetchJSON, normalizeArticle, parseRSS, QUERY } from "./update-news.mjs";
 
 function response(status, body, headers = {}) {
   return {
@@ -26,6 +26,20 @@ test("retries a rate-limited GDELT response and returns JSON", async () => {
   });
   assert.deepEqual(data, { ok: true });
   assert.equal(calls, 2);
+});
+
+test("parses RSS fallback items and safely decodes XML", () => {
+  const articles = parseRSS(`<?xml version="1.0"?><rss><channel>
+    <item><title><![CDATA[Security &amp; regional update]]></title>
+      <link>https://news.google.com/rss/articles/example</link>
+      <pubDate>Sat, 24 Oct 2026 00:00:00 GMT</pubDate>
+      <source url="https://example.com">Example News</source>
+    </item>
+    <item><title>No link</title></item>
+  </channel></rss>`);
+  assert.equal(articles.length, 1);
+  assert.equal(articles[0].title, "Security & regional update");
+  assert.equal(articles[0].domain, "Example News");
 });
 
 test("collects a non-empty feed from one bounded query", async () => {
