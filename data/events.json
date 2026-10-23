@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-23T22:10:33.812Z",
+  "generatedAt": "2026-10-23T22:13:29.184Z",
   "provider": "GDELT",
   "status": "limited",
   "errors": [
-    "Articles: fetch failed",
+    "Articles: HTTP 429",
     "Geo: HTTP 404"
   ],
   "articles": [],
