@@ -1,13 +1,12 @@
 {
-  "schemaVersion": 2,
-  "generatedAt": null,
-  "provider": "GDELT Project",
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-23T22:10:33.812Z",
+  "provider": "GDELT",
   "status": "limited",
-  "errors": [],
+  "errors": [
+    "Articles: fetch failed",
+    "Geo: HTTP 404"
+  ],
   "articles": [],
-  "geoFeatures": [],
-  "limitations": [
-    "No live fetch has run yet. No sample events are included.",
-    "Map points will be geographic mentions from reports, not confirmed incident coordinates."
-  ]
+  "geoFeatures": []
 }
