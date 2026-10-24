@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-10-24T00:04:30.109Z",
+  "generatedAt": "2026-10-24T04:25:16.194Z",
   "provider": "MENA Watch multi-source collector",
   "status": "limited",
   "sourceStatus": {
@@ -36,9 +36,9 @@
     }
   },
   "errors": [
-    "fetch failed",
-    "fetch failed",
-    "fetch failed"
+    "GDELT articles query 1: HTTP 429",
+    "GDELT articles query 2: HTTP 429",
+    "GDELT geographic mentions: HTTP 404"
   ],
   "articles": [],
   "geoFeatures": [],
